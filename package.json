@@ -1,7 +1,7 @@
 {
-  "name": "countdown-timer",
+  "name": "timer",
   "version": "1.0.0",
-  "description": "Countdown Timer",
+  "description": "Timer",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -9,8 +9,8 @@
     "dist": "electron-builder --mac dmg zip"
   },
   "build": {
-    "appId": "com.local.countdown-timer",
-    "productName": "Countdown Timer",
+    "appId": "com.caldvs.timer",
+    "productName": "Timer",
     "mac": {
       "target": [
         { "target": "dmg", "arch": ["arm64", "x64"] },
@@ -21,7 +21,7 @@
       "identity": null
     },
     "dmg": {
-      "title": "Countdown Timer ${version}",
+      "title": "Timer ${version}",
       "contents": [
         { "x": 130, "y": 220 },
         { "x": 410, "y": 220, "type": "link", "path": "/Applications" }

@@ -1,4 +1,4 @@
-# Countdown Timer
+# Timer
 
 A minimal always-on-top countdown timer for macOS. Set a duration, hit start, dock it to your menu bar when you need the screen space.
 
@@ -8,10 +8,10 @@ Grab the latest `.dmg` from the [Releases](../../releases) page.
 
 ## Install
 
-1. Open the DMG and drag **Countdown Timer** into Applications.
+1. Open the DMG and drag **Timer** into Applications.
 2. First launch: macOS will warn that the app is from an unidentified developer — this build is unsigned.
    - **Right-click** the app in Applications → **Open** → click **Open** in the dialog.
-   - After that, launching normally works from Spotlight (⌘-Space → "Countdown Timer").
+   - After that, launching normally works from Spotlight (⌘-Space → "Timer").
 
 ## Features
 
