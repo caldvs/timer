@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      background: #f5f5f5;
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      user-select: none;
+      -webkit-app-region: drag;
+      overflow: hidden;
+    }
+
+    .progress-ring {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 60vmin;
+      height: 60vmin;
+      cursor: default;
+    }
+
+    .progress-ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .progress-ring circle {
+      fill: none;
+    }
+
+    .progress-bg { stroke: #e0e0e0; stroke-width: 4; }
+    .progress-fg {
+      stroke: #2196F3;
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.5s linear, stroke 0.3s;
+    }
+    .progress-fg.expired { stroke: #d32f2f; }
+
+    .center-content {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      -webkit-app-region: no-drag;
+    }
+
+    .time-input-wrap {
+      display: flex;
+      align-items: baseline;
+      cursor: text;
+    }
+
+    .time-input-wrap input {
+      font-size: 16vmin;
+      font-weight: 300;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.5vmin;
+      color: #222;
+      background: transparent;
+      border: none;
+      outline: none;
+      text-align: center;
+      line-height: 1;
+      font-family: inherit;
+      width: 2.2ch;
+      padding: 0;
+      -moz-appearance: textfield;
+      overflow: visible;
+    }
+
+    .time-input-wrap input::-webkit-inner-spin-button,
+    .time-input-wrap input::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .time-input-wrap .colon {
+      font-size: 16vmin;
+      font-weight: 300;
+      color: #222;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .time-input-wrap input:focus {
+      background: rgba(0,0,0,0.04);
+      border-radius: 1vmin;
+    }
+
+    .timer-display {
+      font-size: 16vmin;
+      font-weight: 300;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.5vmin;
+      color: #222;
+      cursor: default;
+      line-height: 1;
+      display: none;
+    }
+
+    .timer-display.expired {
+      color: #d32f2f;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Stop overlay — hidden by default, visible on hover when running */
+    .stop-overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      transition: opacity 0.2s;
+      cursor: pointer;
+      -webkit-app-region: no-drag;
+      z-index: 10;
+    }
+
+    .stop-overlay span {
+      font-size: 8vmin;
+      font-weight: 500;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+
+    body.timer-active .stop-overlay {
+      display: flex;
+    }
+
+    body.timer-active .progress-ring:hover .stop-overlay {
+      opacity: 1;
+    }
+
+    .actions {
+      display: flex;
+      gap: 3vmin;
+      margin-top: 2vmin;
+      -webkit-app-region: no-drag;
+    }
+
+    .actions button {
+      background: none;
+      border: none;
+      font-size: max(12px, 4.5vmin);
+      color: #666;
+      cursor: pointer;
+      padding: 1vmin 2vmin;
+      border-radius: 1vmin;
+      font-family: inherit;
+    }
+
+    .actions button:hover { color: #222; background: #e8e8e8; }
+    .actions button.primary { color: #222; font-weight: 500; }
+
+  </style>
+</head>
+<body>
+
+  <div class="progress-ring">
+    <svg viewBox="0 0 150 150">
+      <circle class="progress-bg" cx="75" cy="75" r="65"></circle>
+      <circle class="progress-fg" cx="75" cy="75" r="65"
+              stroke-dasharray="408.41" stroke-dashoffset="0"></circle>
+    </svg>
+    <div class="center-content">
+      <div class="time-input-wrap" id="timeInputWrap">
+        <input type="number" id="minInput" min="0" max="99" value="05" placeholder="00">
+        <span class="colon">:</span>
+        <input type="number" id="secInput" min="0" max="59" value="00" placeholder="00">
+      </div>
+      <div class="timer-display" id="display">00:00</div>
+    </div>
+    <div class="stop-overlay" id="stopOverlay"><span>Stop</span></div>
+  </div>
+
+  <div class="actions" id="actions">
+    <button class="primary" id="startBtn">Start</button>
+  </div>
+
+  <div class="actions" id="runningActions" style="display:none;">
+    <button id="dockBtn">Dock</button>
+  </div>
+
+  <script>
+    const display = document.getElementById('display');
+    const timeInputWrap = document.getElementById('timeInputWrap');
+    const minInput = document.getElementById('minInput');
+    const secInput = document.getElementById('secInput');
+    const startBtn = document.getElementById('startBtn');
+    const actions = document.getElementById('actions');
+    const stopOverlay = document.getElementById('stopOverlay');
+    const progressFg = document.querySelector('.progress-fg');
+    const circumference = 2 * Math.PI * 65;
+
+    let totalSeconds = 0;
+    let remaining = 0;
+    let intervalId = null;
+    let running = false;
+
+    // Pad input values on blur
+    minInput.addEventListener('blur', () => {
+      minInput.value = String(parseInt(minInput.value) || 0).padStart(2, '0');
+    });
+    secInput.addEventListener('blur', () => {
+      let v = parseInt(secInput.value) || 0;
+      if (v > 59) v = 59;
+      secInput.value = String(v).padStart(2, '0');
+    });
+
+    // Auto-jump from minutes to seconds when 2 digits typed
+    minInput.addEventListener('input', () => {
+      if (minInput.value.length >= 2) secInput.focus();
+    });
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    const runningActions = document.getElementById('runningActions');
+
+    function enterRunningMode() {
+      document.body.classList.add('timer-active');
+      actions.style.display = 'none';
+      runningActions.style.display = 'flex';
+      timeInputWrap.style.display = 'none';
+      display.style.display = 'block';
+    }
+
+    function exitRunningMode() {
+      document.body.classList.remove('timer-active');
+      actions.style.display = 'flex';
+      runningActions.style.display = 'none';
+      timeInputWrap.style.display = 'flex';
+      display.style.display = 'none';
+    }
+
+    function updateProgress() {
+      if (totalSeconds === 0) {
+        progressFg.style.strokeDashoffset = 0;
+        return;
+      }
+      const offset = circumference * (1 - remaining / totalSeconds);
+      progressFg.style.strokeDashoffset = offset;
+    }
+
+    function stopTimer() {
+      clearInterval(intervalId);
+      intervalId = null;
+      running = false;
+      remaining = 0;
+      totalSeconds = 0;
+      display.textContent = '00:00';
+      display.classList.remove('expired');
+      progressFg.classList.remove('expired');
+      progressFg.style.strokeDashoffset = 0;
+      exitRunningMode();
+      window.electronAPI.updateTrayTime('');
+    }
+
+    function tick() {
+      if (remaining <= 0) {
+        clearInterval(intervalId);
+        intervalId = null;
+        running = false;
+        display.classList.add('expired');
+        progressFg.classList.add('expired');
+        new Notification('Timer', { body: 'Time is up!' });
+        // After expiry, show stop overlay to dismiss
+        return;
+      }
+      remaining--;
+      const timeStr = formatTime(remaining);
+      display.textContent = timeStr;
+      updateProgress();
+      window.electronAPI.updateTrayTime(timeStr);
+    }
+
+    startBtn.addEventListener('click', () => {
+      const m = parseInt(minInput.value) || 0;
+      const s = parseInt(secInput.value) || 0;
+      totalSeconds = m * 60 + s;
+      remaining = totalSeconds;
+      if (totalSeconds === 0) return;
+
+      display.classList.remove('expired');
+      progressFg.classList.remove('expired');
+      display.textContent = formatTime(remaining);
+      updateProgress();
+      enterRunningMode();
+      running = true;
+      intervalId = setInterval(tick, 1000);
+    });
+
+    stopOverlay.addEventListener('click', () => {
+      stopTimer();
+    });
+
+    const dockBtn = document.getElementById('dockBtn');
+    dockBtn.addEventListener('click', () => {
+      window.electronAPI.dockToTray(formatTime(remaining));
+    });
+  </script>
+</body>
+</html>
