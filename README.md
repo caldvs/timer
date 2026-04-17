@@ -1,5 +1,7 @@
 # Timer
 
+<p align="center"><img src="screenshot.png" width="360" alt="Timer screenshot"></p>
+
 A minimal always-on-top countdown timer for macOS. Set a duration, hit start, dock it to your menu bar when you need the screen space.
 
 ## Download
